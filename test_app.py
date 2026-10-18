@@ -19,6 +19,10 @@ class FakeApi(BaseHTTPRequestHandler):
 
     def do_GET(self):
         # Like the real platform, which blocks Python's default user agent.
+        if self.path == "/api/v1/cameras/eot-offline/live-stream":
+            self.send_response(409)  # the platform's answer for an offline EOT-1
+            self.end_headers()
+            return
         live = (
             self.path == "/api/v1/cameras/eot-test/live-stream"
             and self.headers.get("x-api-key") == "key"
@@ -96,6 +100,13 @@ class HttpTest(unittest.TestCase):
         status, body = get(f"/live-stream?token={mint()}")
         self.assertEqual(status, 200)
         self.assertEqual(json.loads(body), {"webrtc_playback_url": "https://stream.example/play"})
+
+    def test_offline_eot1_passes_through_as_409(self):
+        app.CAMERA_ID = "eot-offline"
+        try:
+            self.assertEqual(app.live_stream()[0], 409)
+        finally:
+            app.CAMERA_ID = "eot-test"
 
 
 if __name__ == "__main__":

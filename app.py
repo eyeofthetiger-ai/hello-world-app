@@ -73,7 +73,8 @@ def live_stream():
             url = json.load(res).get("live_stream", {}).get("webrtc_playback_url")
             return (200, {"webrtc_playback_url": url}) if url else (404, {"error": "No live stream."})
     except urllib.error.HTTPError as e:
-        return (404, {"error": "No live stream."}) if e.code == 404 else (502, {"error": f"API returned {e.code}."})
+        # 404: no live stream yet. 409: the EOT-1 isn't connected.
+        return (e.code, {"error": "No live stream."}) if e.code in (404, 409) else (502, {"error": f"API returned {e.code}."})
     except OSError as e:
         return 502, {"error": str(e)}
 

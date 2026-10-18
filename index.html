@@ -66,7 +66,9 @@ async function watch(playbackUrl) {
     try {
       const res = await fetch(`live-stream?token=${encodeURIComponent(token)}`);
       if (res.status === 401) return say("This link has expired. Open the app again from the portal.");
-      if (res.status === 404) {
+      if (res.status === 409) {
+        say("Your EOT-1 is offline. This page connects once it's back online.");
+      } else if (res.status === 404) {
         say("No live stream yet. Opening the app from the portal starts one.");
       } else if (!res.ok) {
         say(`Couldn't reach your EOT-1 (${(await res.json()).error})`);
