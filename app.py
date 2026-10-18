@@ -14,6 +14,7 @@ import hashlib
 import hmac
 import json
 import os
+import socket
 import time
 import urllib.error
 import urllib.parse
@@ -32,6 +33,11 @@ EMBED_TOKEN_SECRET = os.environ.get("EMBED_TOKEN_SECRET")
 PORT = int(os.environ.get("PORT", "8080"))
 
 PAGE = (Path(__file__).parent / "index.html").read_bytes()
+
+# On Cloud Run, connections to the platform's IPv6 addresses sometimes hang
+# until the timeout, and IPv6 is tried first. Resolve IPv4 addresses only.
+_getaddrinfo = socket.getaddrinfo
+socket.getaddrinfo = lambda host, port, family=0, *args, **kwargs: _getaddrinfo(host, port, socket.AF_INET, *args, **kwargs)
 
 
 def token_ok(token):
