@@ -63,7 +63,10 @@ def live_stream():
     """(status, body) for the EOT-1's live stream. The API key stays here on
     the server; the browser only gets the playback URL."""
     req = urllib.request.Request(
-        f"{API_URL}/api/v1/cameras/{CAMERA_ID}/live-stream", headers={"x-api-key": API_KEY}
+        f"{API_URL}/api/v1/cameras/{CAMERA_ID}/live-stream",
+        # Name your app here: the platform's firewall blocks Python's default
+        # "Python-urllib" user agent.
+        headers={"x-api-key": API_KEY, "user-agent": "hello-world-app/1.0"},
     )
     try:
         with urllib.request.urlopen(req, timeout=15) as res:

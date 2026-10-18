@@ -18,7 +18,12 @@ class FakeApi(BaseHTTPRequestHandler):
     """Stands in for the platform API: one EOT-1 with a live stream."""
 
     def do_GET(self):
-        live = self.path == "/api/v1/cameras/eot-test/live-stream" and self.headers.get("x-api-key") == "key"
+        # Like the real platform, which blocks Python's default user agent.
+        live = (
+            self.path == "/api/v1/cameras/eot-test/live-stream"
+            and self.headers.get("x-api-key") == "key"
+            and not self.headers.get("user-agent", "").startswith("Python-urllib")
+        )
         body = json.dumps({"live_stream": {"webrtc_playback_url": "https://stream.example/play"}}).encode()
         self.send_response(200 if live else 404)
         self.end_headers()
