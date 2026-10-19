@@ -35,6 +35,7 @@ async function watch(playbackUrl) {
   pc.addTransceiver("video", { direction: "recvonly" });
   pc.addTransceiver("audio", { direction: "recvonly" });
   pc.ontrack = (e) => { video.srcObject = e.streams[0]; };
+  let resourceUrl;
   try {
     await pc.setLocalDescription(await pc.createOffer());
     // Wait for ICE gathering (up to 3s) so one POST carries every candidate.
@@ -50,12 +51,20 @@ async function watch(playbackUrl) {
       await sleep(1500);
     }
     if (!res.ok) throw new Error(`stream answered ${res.status}`);
+    resourceUrl = res.headers.get("Location");
     await pc.setRemoteDescription({ type: "answer", sdp: await res.text() });
     say("");
     await new Promise((r) => {
       pc.onconnectionstatechange = () => ["failed", "disconnected", "closed"].includes(pc.connectionState) && r();
     });
   } finally {
+    // Release the WHEP session server-side, not just the local peer
+    // connection -- otherwise every retry leaves an orphaned viewer session
+    // on the live_input, and once enough pile up Cloudflare starts answering
+    // 409 (conflict) to every new POST, which looks exactly like the stream
+    // never connecting at all (never recovers on its own; see portal's
+    // LiveStreamPlayer.tsx's disconnect() for the same teardown).
+    if (resourceUrl) fetch(resourceUrl, { method: "DELETE" }).catch(() => {});
     pc.close();
     video.srcObject = null;
   }
