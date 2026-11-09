@@ -36,6 +36,16 @@ async function watch(playbackUrl) {
   pc.addTransceiver("audio", { direction: "recvonly" });
   pc.ontrack = (e) => { video.srcObject = e.streams[0]; };
   let resourceUrl;
+  let ended;
+  const done = new Promise((r) => { ended = r; });
+  // The platform stops a live stream 30s after the last fetch of its
+  // playback URL, so keep re-fetching it every 10s while this page watches.
+  // A 404 means the stream ended. Only the page does this, never app.py:
+  // a server polling on its own would keep the stream up with nobody here.
+  const lease = setInterval(async () => {
+    const res = await fetch(`live-stream?token=${encodeURIComponent(token)}`).catch(() => null);
+    if (res?.status === 404) ended();
+  }, 10000);
   try {
     await pc.setLocalDescription(await pc.createOffer());
     // Wait for ICE gathering (up to 3s) so one POST carries every candidate.
@@ -54,10 +64,10 @@ async function watch(playbackUrl) {
     resourceUrl = res.headers.get("Location");
     await pc.setRemoteDescription({ type: "answer", sdp: await res.text() });
     say("");
-    await new Promise((r) => {
-      pc.onconnectionstatechange = () => ["failed", "disconnected", "closed"].includes(pc.connectionState) && r();
-    });
+    pc.onconnectionstatechange = () => ["failed", "disconnected", "closed"].includes(pc.connectionState) && ended();
+    await done;
   } finally {
+    clearInterval(lease);
     // Release the WHEP session server-side, not just the local peer
     // connection -- otherwise every retry leaves an orphaned viewer session
     // on the live_input, and once enough pile up Cloudflare starts answering
