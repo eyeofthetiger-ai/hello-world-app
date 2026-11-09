@@ -34,7 +34,9 @@ async function watch(playbackUrl) {
   const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }] });
   pc.addTransceiver("video", { direction: "recvonly" });
   pc.addTransceiver("audio", { direction: "recvonly" });
-  pc.ontrack = (e) => { video.srcObject = e.streams[0]; };
+  // Cloudflare's audio track can arrive with no stream; only take one that
+  // has it, or the audio event wipes out the video the first one set.
+  pc.ontrack = (e) => { if (e.streams[0]) video.srcObject = e.streams[0]; };
   let resourceUrl;
   let ended;
   const done = new Promise((r) => { ended = r; });
