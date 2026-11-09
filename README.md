@@ -26,7 +26,7 @@ when you're done.
 | File | What it does |
 |---|---|
 | [`app.py`](app.py) | A Python standard-library web server. Checks the portal's token, and fetches the live stream's playback URL with the EOT-1's API key so the key never reaches the browser. |
-| [`index.html`](index.html) | Plays the live stream over WebRTC (WHEP) and puts "Hello, world." on top. |
+| [`index.html`](index.html) | Plays the live stream over WebRTC (WHEP) and puts "Hello, world." on top. Re-fetches the playback URL every 10 seconds while it plays: the platform stops a stream 30 seconds after the last fetch. |
 | [`Dockerfile`](Dockerfile) | Builds the image. It must be at the root of the repository. |
 | [`test_app.py`](test_app.py) | Tests for the token check and the endpoints: `python -m unittest test_app`. |
 
